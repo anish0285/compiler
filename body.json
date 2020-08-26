@@ -1,5 +1,6 @@
 {
-  "returntype": "int",
+  "returntype": "bool",
   "name": "functionName",
-  "inputs": [1, 2, 3]
+  "inputs": ["true", "false", "true"],
+  "bool": true
 }
