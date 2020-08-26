@@ -1,0 +1,5 @@
+{
+  "returntype": "int",
+  "name": "functionName",
+  "inputs": [1, 2, 3]
+}
