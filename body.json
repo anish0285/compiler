@@ -1,6 +1,3 @@
 {
-  "returntype": "bool",
-  "name": "functionName",
-  "inputs": ["true", "false", "true"],
-  "bool": true
+  "returntype": "arr"
 }

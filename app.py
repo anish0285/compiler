@@ -9,6 +9,13 @@ app = Flask(__name__)
 
 cwd = os.getcwd()
 
+info = {
+    "java": {
+        "command": "java",
+        "uniquecode": "// codenite-java"
+    }
+}
+
 
 @ app.route('/compile', methods=['POST'])
 def compile():
@@ -16,66 +23,80 @@ def compile():
         return json.dumps({"client": "Files not uploaded."})
 
     returnList = []
-
     reqId = str(uuid.uuid4())
-    inputs = request.files['inputs']
-    functions = request.files['functions']
 
-    inputsData = json.loads(inputs.read())
-    extension = functions.filename.split(".")[-1]
+    inputsFile = request.files['inputs']
+    functionsFile = request.files['functions']
 
-    if extension == "js":
-        returntype = inputsData['returntype']
-        functionPath = cwd + "/fileManager/" + reqId + "function.js"
-        outputPath = cwd + "/fileManager/" + reqId + "output.js"
-        command = ("node " + outputPath).split(" ")
-        functions.save(functionPath)
-        for input in inputsData['inputs']:
-            shutil.copyfile(functionPath, outputPath)
-            with open(outputPath, "a") as output:
-                output.write("\nconsole.log(%s(%s))" %
-                             (inputsData['name'], input))
-            program = subprocess.run(
-                command, shell=False, capture_output=True, universal_newlines=True)
+    inputsData = json.loads(inputsFile.read())
 
-            stdout = ""
-            stderr = program.stderr
+    extension = functionsFile.filename.split(".")[-1]
+    returntype = inputsData['returntype']
+    inputs = inputsData['loglines'][extension]
 
-            if program.returncode == 0:
-                stdout = program.stdout.split("\n")[-2]
-                if returntype == "int":
-                    try:
-                        stdout = int(stdout)
-                    except:
-                        stdout = ""
-                        stderr = "function expected to return an integer"
-                elif returntype == "bool":
-                    if stdout == "true":
-                        stdout = True
-                    elif stdout == "false":
-                        stdout = False
-                    else:
-                        stdout = ""
-                        stderr = "function expected to return true or false"
-                elif returntype == "float":
-                    try:
-                        stdout = float(stdout)
-                    except:
-                        stdout = ""
-                        stderr = "function expected to return a decimal number"
-                elif returntype == "arr":
-                    try:
-                        stdout = json.loads(stdout)
-                    except:
-                        stdout = ""
-                        stderr = "function expected to return an array or a list"
-            returnList.append(
-                {"input": input, "stdout": stdout, "stderr": stderr})
+    functionPath = cwd + "/fileManager/" + reqId + "function." + extension
+    outputPath = cwd + "/fileManager/" + reqId + "output." + extension
 
-        os.remove(functionPath)
-        os.remove(outputPath)
+    command = [info[extension]['command'], outputPath]
+    uniquecode = info[extension]['uniquecode']
 
-        return json.dumps(returnList)
+    functionsFile.save(functionPath)
+
+    for input in inputs:
+        shutil.copyfile(functionPath, outputPath)
+        with open(outputPath, 'r') as file:
+            filedata = file.read()
+            filedata = filedata.replace(uniquecode, input)
+        with open(outputPath, 'w') as file:
+            file.write(filedata)
+        program = subprocess.run(command, shell=False,
+                                 capture_output=True, universal_newlines=True)
+        stdout = program.stdout.split('\n')
+        stderr = program.stderr
+        if(program.returncode == 0):
+            try:
+                output = parser(returntype, stdout[-4])
+                expected = parser(returntype, stdout[-3])
+                result = boolparser(stdout[-2])
+                returnObj = {"output": output,
+                             "expected": expected, "result": result}
+            except:
+                stderr = "solution do not matches the return type."
+                returnObj = {"stderr": stderr}
+        else:
+            returnObj = {"stderr": stderr}
+        returnList.append(returnObj)
+
+    # os.remove(functionPath)
+    # os.remove(outputPath)
+
+    return json.dumps(returnList)
+
+
+def parser(returntype, variable):
+    if(returntype == "int"):
+        variable = int(variable)
+    elif(returntype == "float"):
+        variable = float(variable)
+    elif(returntype == "arr"):
+        variable = json.loads(variable)
+    elif(returntype == "bool"):
+        variable = boolparser(variable)
+    else:
+        variable = variable
+
+    return variable
+
+
+def boolparser(variable):
+    if(variable == "false" or variable == "False"):
+        variable = False
+    elif(variable == "true" or variable == "True"):
+        variable = True
+    else:
+        raise Exception("Something is wrong, I can feel it.")
+
+    return variable
 
 
 if __name__ == '__main__':
