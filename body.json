@@ -1,3 +1,11 @@
 {
-  "returntype": "arr"
+  "returntype": "int",
+  "inputs": {
+    "java": ["int output = a.getint(4);", "int output = a.getint(5);"],
+    "js": ["output = getint(6);", "output = getint(7);"],
+    "py": ["output = a.getint(8)", "output = a.getint(9)"],
+    "cpp": ["int output = a.getint(12);", "int output = a.getint(13);"],
+    "ts": ["let output = getint(14);", "let output = getint(15);"],
+    "cs": ["int output = a.getint(16);", "int output = a.getint(17);"]
+  }
 }

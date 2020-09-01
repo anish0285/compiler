@@ -1,0 +1,20 @@
+{
+  "js": {
+    "setup": "sudo apt install nodejs"
+  },
+  "python": {
+    "setup": "sudo apt install python"
+  },
+  "java": {
+    "setup": "sudo apt install default-jre"
+  },
+  "c++": {
+    "setup": "sudo apt install g++"
+  },
+  "ts": {
+    "setup": "npm install -g ts-node && npm install -g typescript"
+  },
+  "cs": {
+    "setup": "sudo apt install mono-complete"
+  }
+}

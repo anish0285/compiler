@@ -9,13 +9,6 @@ app = Flask(__name__)
 
 cwd = os.getcwd()
 
-info = {
-    "java": {
-        "command": "java",
-        "uniquecode": "// codenite-java"
-    }
-}
-
 
 @ app.route('/compile', methods=['POST'])
 def compile():
@@ -32,13 +25,17 @@ def compile():
 
     extension = functionsFile.filename.split(".")[-1]
     returntype = inputsData['returntype']
-    inputs = inputsData['loglines'][extension]
+    inputs = inputsData['inputs'][extension]
 
     functionPath = cwd + "/fileManager/" + reqId + "function." + extension
     outputPath = cwd + "/fileManager/" + reqId + "output." + extension
 
-    command = [info[extension]['command'], outputPath]
-    uniquecode = info[extension]['uniquecode']
+    uniquecode = ""
+
+    if(extension == "py"):
+        uniquecode = "# codenite-"+extension
+    else:
+        uniquecode = "// codenite-"+extension
 
     functionsFile.save(functionPath)
 
@@ -46,31 +43,29 @@ def compile():
         shutil.copyfile(functionPath, outputPath)
         with open(outputPath, 'r') as file:
             filedata = file.read()
-            filedata = filedata.replace(uniquecode, input)
+            if(filedata.count(uniquecode) == 1):
+                filedata = filedata.replace(uniquecode, input)
+            else:
+                os.remove(functionPath)
+                os.remove(outputPath)
+                return json.dumps({"stderr": "donot mess with code outside the function please."})
         with open(outputPath, 'w') as file:
             file.write(filedata)
-        program = subprocess.run(command, shell=False,
-                                 capture_output=True, universal_newlines=True)
+        program = getcommand(extension, outputPath, reqId)
         stdout = program.stdout.split('\n')
         stderr = program.stderr
-        if(program.returncode == 0):
-            try:
-                output = parser(returntype, stdout[-4])
-                expected = parser(returntype, stdout[-3])
-                result = boolparser(stdout[-2])
-                returnObj = {"output": output,
-                             "expected": expected, "result": result}
-            except:
-                stderr = "solution do not matches the return type."
-                returnObj = {"stderr": stderr}
-        else:
-            returnObj = {"stderr": stderr}
-        returnList.append(returnObj)
+        if(program.returncode != 0):
+            return json.dumps({"stderr": stderr})
+        try:
+            output = parser(returntype, stdout[-2])
+        except:
+            return json.dumps({"stderr": "solution donot match the retutn type."})
+        returnList.append(output)
 
-    # os.remove(functionPath)
-    # os.remove(outputPath)
+    os.remove(functionPath)
+    os.remove(outputPath)
 
-    return json.dumps(returnList)
+    return json.dumps({"stdout": returnList})
 
 
 def parser(returntype, variable):
@@ -97,6 +92,41 @@ def boolparser(variable):
         raise Exception("Something is wrong, I can feel it.")
 
     return variable
+
+
+def getcommand(extension, path, reqId):
+    if(extension == 'py'):
+        command = ("python " + path).split(" ")
+        return subprocess.run(command, capture_output=True, universal_newlines=True, shell=False)
+    elif(extension == "js"):
+        command = ("node " + path).split(" ")
+        return subprocess.run(command, capture_output=True, universal_newlines=True, shell=False)
+    elif(extension == "java"):
+        command = ("java " + path).split(" ")
+        return subprocess.run(command, capture_output=True, universal_newlines=True, shell=False)
+    elif(extension == "cpp"):
+        outpath = cwd + "/fileManager/" + reqId
+        command = "g++ " + path + " -o " + outpath
+        program = subprocess.run(command.split(
+            " "), capture_output=True, universal_newlines=True, shell=False)
+        if(program.returncode == 0):
+            program = subprocess.run((outpath).split(
+                " "), capture_output=True, universal_newlines=True, shell=False)
+        os.remove(outpath)
+        return program
+    elif(extension == "ts"):
+        command = ("ts-node " + path).split(" ")
+        return subprocess.run(command, capture_output=True, universal_newlines=True, shell=False)
+    elif(extension == "cs"):
+        outpath = cwd + "/fileManager/" + reqId
+        command = "mcs -out:" + outpath + " " + path
+        program = subprocess.run(command.split(
+            " "), capture_output=True, universal_newlines=True, shell=False)
+        if(program.returncode == 0):
+            program = subprocess.run((outpath).split(
+                " "), capture_output=True, universal_newlines=True, shell=False)
+        os.remove(outpath)
+        return program
 
 
 if __name__ == '__main__':
