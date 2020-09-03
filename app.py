@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify, Response
 import json
 import uuid
 import os
@@ -13,7 +13,7 @@ cwd = os.getcwd()
 @ app.route('/compile', methods=['POST'])
 def compile():
     if len(request.files) != 2:
-        return json.dumps({"client": "Files not uploaded."})
+        return jsonify({"error": "files not uploaded"})
 
     returnList = []
     reqId = str(uuid.uuid4())
@@ -48,24 +48,24 @@ def compile():
             else:
                 os.remove(functionPath)
                 os.remove(outputPath)
-                return json.dumps({"stderr": "donot mess with code outside the function please."})
+                return jsonify({"stderr": "donot mess with code outside the function please."})
         with open(outputPath, 'w') as file:
             file.write(filedata)
         program = getcommand(extension, outputPath, reqId)
         stdout = program.stdout.split('\n')
         stderr = program.stderr
         if(program.returncode != 0):
-            return json.dumps({"stderr": stderr})
+            return jsonify({"stderr": stderr})
         try:
             output = parser(returntype, stdout[-2])
         except:
-            return json.dumps({"stderr": "solution donot match the retutn type."})
+            return jsonify({"stderr": "solution donot match the retutn type."})
         returnList.append(output)
 
     os.remove(functionPath)
     os.remove(outputPath)
-
-    return json.dumps({"stdout": returnList})
+    print(returnList)
+    return jsonify({"stdout": returnList})
 
 
 def parser(returntype, variable):
