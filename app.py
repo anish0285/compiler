@@ -55,10 +55,14 @@ def compile():
         stdout = program.stdout.split('\n')
         stderr = program.stderr
         if(program.returncode != 0):
+            os.remove(functionPath)
+            os.remove(outputPath)
             return jsonify({"stderr": stderr})
         try:
             output = parser(returntype, stdout[-2])
         except:
+            os.remove(functionPath)
+            os.remove(outputPath)
             return jsonify({"stderr": "solution donot match the retutn type."})
         returnList.append(output)
 
@@ -112,7 +116,6 @@ def getcommand(extension, path, reqId):
         if(program.returncode == 0):
             program = subprocess.run((outpath).split(
                 " "), capture_output=True, universal_newlines=True, shell=False)
-        os.remove(outpath)
         return program
     elif(extension == "ts"):
         command = ("ts-node " + path).split(" ")
@@ -125,7 +128,6 @@ def getcommand(extension, path, reqId):
         if(program.returncode == 0):
             program = subprocess.run((outpath).split(
                 " "), capture_output=True, universal_newlines=True, shell=False)
-        os.remove(outpath)
         return program
 
 
